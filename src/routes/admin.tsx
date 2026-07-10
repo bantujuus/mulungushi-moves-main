@@ -1,13 +1,11 @@
-﻿import { createFileRoute, Outlet, useRouterState } from "@tanstack/react-router";
+﻿import { createFileRoute, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { AppShell, StatusBadge } from "@/components/app-shell";
-import { Card } from "@/components/ui/card";
-import { getRequests, getVehicles, getDrivers, getGateLogs } from "@/lib/api/vehicles";
+import { AppShell, StatusBadge, DirectionBadge, SectionHeader } from "@/components/app-shell";
+import { getRequests, getVehicles, getGateLogs } from "@/lib/api/vehicles";
 import { getAnalytics } from "@/lib/api/analytics";
 import { Car, Users, ClipboardList, ShieldCheck } from "lucide-react";
-import {
-  ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell,
-} from "recharts";
+import { ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell } from "recharts";
+import { format } from "date-fns";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
@@ -15,132 +13,130 @@ export const Route = createFileRoute("/admin")({
 
 function AdminLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isIndex = pathname === "/admin";
-  return isIndex ? <AdminPage /> : <Outlet />;
+  return pathname === "/admin" ? <AdminPage /> : <Outlet />;
 }
 
-const COLORS = ["#1d4ed8", "#16a34a", "#ea580c", "#9333ea", "#dc2626", "#0891b2"];
+const COLORS = ["#d4a843", "#047857", "#d97706", "#9333ea", "#dc2626", "#0891b2"];
+
+function StatCard({ label, value, icon: Icon, highlight }: { label: string; value: number; icon: any; highlight?: boolean }) {
+  return (
+    <div style={{
+      background: "#fff", border: `1px solid rgba(11,24,48,0.08)`, borderRadius: 12, padding: 20,
+      minHeight: 96, display: "flex", flexDirection: "column", gap: 12,
+      borderLeft: highlight && value > 0 ? "4px solid #d4a843" : undefined,
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(11,24,48,0.45)", textTransform: "uppercase", letterSpacing: "0.10em" }}>{label}</span>
+        <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(11,24,48,0.05)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Icon size={16} color="rgba(11,24,48,0.40)" />
+        </div>
+      </div>
+      <div style={{ fontSize: 32, fontWeight: 800, color: "#0b1830", lineHeight: 1, letterSpacing: "-0.02em" }}>{value}</div>
+    </div>
+  );
+}
 
 function AdminPage() {
+  const navigate = useNavigate();
   const { data: requests = [] } = useQuery({ queryKey: ["requests"], queryFn: () => getRequests(), refetchInterval: 5000 });
   const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles"], queryFn: () => getVehicles() });
-  const { data: drivers = [] } = useQuery({ queryKey: ["drivers"], queryFn: () => getDrivers() });
   const { data: logs = [] } = useQuery({ queryKey: ["gateLogs"], queryFn: () => getGateLogs(), refetchInterval: 5000 });
   const { data: analytics } = useQuery({ queryKey: ["analytics"], queryFn: () => getAnalytics(), refetchInterval: 15000 });
 
   const stats = [
     { label: "Total Requests", value: requests.length, icon: ClipboardList },
-    { label: "Pending", value: requests.filter((r) => r.status === "pending").length, icon: ClipboardList },
+    { label: "Pending", value: requests.filter((r: any) => r.status === "pending").length, icon: ClipboardList, highlight: true },
     { label: "Vehicles", value: vehicles.length, icon: Car },
-    { label: "Available Vehicles", value: vehicles.filter((v) => v.status === "available").length, icon: Car },
-    { label: "Drivers", value: drivers.length, icon: Users },
-    { label: "Available Drivers", value: drivers.filter((d) => d.available).length, icon: Users },
+    { label: "Available", value: vehicles.filter((v: any) => v.status === "available").length, icon: Car },
     { label: "Gate Logs", value: logs.length, icon: ShieldCheck },
   ];
 
   return (
     <AppShell title="Admin Dashboard" subtitle="System-wide overview of Mulungushi Moves">
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        {stats.map((s) => (
-          <Card key={s.label} className="p-5">
-            <div className="flex items-center gap-2 text-muted-foreground mb-1">
-              <s.icon className="w-4 h-4" />
-              <span className="text-xs uppercase tracking-wider">{s.label}</span>
-            </div>
-            <div className="text-3xl font-semibold">{s.value}</div>
-          </Card>
-        ))}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 16, marginBottom: 32 }}>
+        {stats.map((s) => <StatCard key={s.label} {...s} />)}
       </div>
 
-      {/* Charts */}
       {analytics && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Weekly volume */}
-          <Card className="p-5 lg:col-span-2">
-            <h2 className="font-semibold mb-1">Weekly Request Volume</h2>
-            <p className="text-xs text-muted-foreground mb-4">Last 12 weeks · total requests vs approved vs rejected</p>
-            <ResponsiveContainer width="100%" height={260}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 32 }}>
+          <div style={{ gridColumn: "1 / -1", background: "#fff", border: "1px solid rgba(11,24,48,0.08)", borderRadius: 12, padding: 20 }}>
+            <SectionHeader>Weekly Request Volume</SectionHeader>
+            <ResponsiveContainer width="100%" height={240}>
               <LineChart data={analytics.weeklyVolume}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-                <XAxis dataKey="week" fontSize={11} />
-                <YAxis fontSize={11} allowDecimals={false} />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="total" stroke="#1d4ed8" strokeWidth={2} name="Total" />
-                <Line type="monotone" dataKey="approved" stroke="#16a34a" strokeWidth={2} name="Approved" />
-                <Line type="monotone" dataKey="rejected" stroke="#dc2626" strokeWidth={2} name="Rejected" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(11,24,48,0.06)" />
+                <XAxis dataKey="week" fontSize={11} tick={{ fill: "rgba(11,24,48,0.45)" }} />
+                <YAxis fontSize={11} tick={{ fill: "rgba(11,24,48,0.45)" }} allowDecimals={false} />
+                <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid rgba(11,24,48,0.10)", fontSize: 12 }} />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Line type="monotone" dataKey="total" stroke="#0b1830" strokeWidth={2} name="Total" dot={false} />
+                <Line type="monotone" dataKey="approved" stroke="#047857" strokeWidth={2} name="Approved" dot={false} />
+                <Line type="monotone" dataKey="rejected" stroke="#dc2626" strokeWidth={2} name="Rejected" dot={false} />
               </LineChart>
             </ResponsiveContainer>
-          </Card>
+          </div>
 
-          {/* Fleet utilisation */}
-          <Card className="p-5">
-            <h2 className="font-semibold mb-1">Fleet Utilisation</h2>
-            <p className="text-xs text-muted-foreground mb-4">Share of completed trips per vehicle</p>
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={analytics.fleetUtilization} layout="vertical" margin={{ left: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-                <XAxis type="number" fontSize={11} allowDecimals={false} />
-                <YAxis dataKey="name" type="category" fontSize={11} width={80} />
-                <Tooltip formatter={(value: any, name: any) => name === "utilization" ? [`${value}%`, "Utilisation"] : [value, "Trips"]} />
+          <div style={{ background: "#fff", border: "1px solid rgba(11,24,48,0.08)", borderRadius: 12, padding: 20 }}>
+            <SectionHeader>Fleet Utilisation</SectionHeader>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={analytics.fleetUtilization} layout="vertical" margin={{ left: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(11,24,48,0.06)" />
+                <XAxis type="number" fontSize={11} tick={{ fill: "rgba(11,24,48,0.45)" }} allowDecimals={false} />
+                <YAxis dataKey="name" type="category" fontSize={11} tick={{ fill: "rgba(11,24,48,0.45)" }} width={80} />
+                <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid rgba(11,24,48,0.10)", fontSize: 12 }} />
                 <Bar dataKey="trips" name="Trips" radius={[0, 4, 4, 0]}>
-                  {analytics.fleetUtilization.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                  {analytics.fleetUtilization.map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-          </Card>
+          </div>
 
-          {/* Peak dispatch hours */}
-          <Card className="p-5">
-            <h2 className="font-semibold mb-1">Peak Dispatch Hours</h2>
-            <p className="text-xs text-muted-foreground mb-4">Vehicle exits by hour of day</p>
-            <ResponsiveContainer width="100%" height={260}>
+          <div style={{ background: "#fff", border: "1px solid rgba(11,24,48,0.08)", borderRadius: 12, padding: 20 }}>
+            <SectionHeader>Peak Dispatch Hours</SectionHeader>
+            <ResponsiveContainer width="100%" height={220}>
               <BarChart data={analytics.peakHours}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-                <XAxis dataKey="hour" fontSize={10} interval={2} />
-                <YAxis fontSize={11} allowDecimals={false} />
-                <Tooltip />
-                <Bar dataKey="count" fill="#ea580c" name="Exits" radius={[4, 4, 0, 0]} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(11,24,48,0.06)" />
+                <XAxis dataKey="hour" fontSize={10} tick={{ fill: "rgba(11,24,48,0.45)" }} interval={2} />
+                <YAxis fontSize={11} tick={{ fill: "rgba(11,24,48,0.45)" }} allowDecimals={false} />
+                <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid rgba(11,24,48,0.10)", fontSize: 12 }} />
+                <Bar dataKey="count" fill="#d4a843" name="Exits" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          </Card>
+          </div>
         </div>
       )}
 
-      {/* Recent activity */}
-      <h2 className="font-semibold text-lg mb-3">All Requests</h2>
-      <div className="space-y-3 mb-8">
-        {requests.slice().reverse().slice(0, 10).map((r) => (
-          <Card key={r.id} className="p-5">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-medium">{r.purpose}</h3>
-                  <StatusBadge status={r.status} />
-                </div>
-                <div className="text-sm text-muted-foreground mt-1">
-                  {r.requesterName} · {r.department} · {r.destination}
-                </div>
+      <div style={{ marginBottom: 32 }}>
+        <SectionHeader>Recent Requests</SectionHeader>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {requests.slice().reverse().slice(0, 10).map((r: any) => (
+            <div key={r.id}
+              onClick={() => navigate({ to: "/requests/$requestId", params: { requestId: r.id } })}
+              style={{ background: "#fff", border: "1px solid rgba(11,24,48,0.08)", borderRadius: 12, padding: 20, cursor: "pointer", transition: "border-color 150ms ease" }}
+              onMouseEnter={(e) => (e.currentTarget.style.borderColor = "rgba(212,168,67,0.40)")}
+              onMouseLeave={(e) => (e.currentTarget.style.borderColor = "rgba(11,24,48,0.08)")}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                <span style={{ fontSize: 15, fontWeight: 600, color: "#0b1830" }}>{r.purpose}</span>
+                <StatusBadge status={r.status} />
               </div>
+              <div style={{ fontSize: 14, color: "rgba(11,24,48,0.55)" }}>{r.destination} · {r.passengerCount} passengers</div>
             </div>
-          </Card>
-        ))}
+          ))}
+        </div>
       </div>
 
-      <h2 className="font-semibold text-lg mb-3">Recent Gate Logs</h2>
-      <div className="space-y-3">
-        {logs.slice().reverse().slice(0, 10).map((log) => (
-          <Card key={log.id} className="p-5">
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${log.direction === "exit" ? "bg-orange-100 text-orange-700" : "bg-green-100 text-green-700"}`}>
-                {log.direction === "exit" ? "EXIT" : "ENTRY"}
+      <div>
+        <SectionHeader>Recent Gate Logs</SectionHeader>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {logs.slice().reverse().slice(0, 10).map((log: any) => (
+            <div key={log.id} style={{ background: "#fff", border: "1px solid rgba(11,24,48,0.08)", borderRadius: 12, padding: 20, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <DirectionBadge direction={log.direction as "exit" | "entry"} />
+              <span style={{ fontSize: 15, fontWeight: 600, color: "#0b1830" }}>{log.vehicleId}</span>
+              <span style={{ fontSize: 14, color: "rgba(11,24,48,0.55)", flex: 1 }}>
+                {log.loggedAt ? format(new Date(log.loggedAt), "PPp") : ""}
               </span>
-              <span className="font-medium">{log.vehiclePlate}</span>
-              <span className="text-sm text-muted-foreground">{log.driverName} · {log.officer}</span>
             </div>
-          </Card>
-        ))}
+          ))}
+        </div>
       </div>
     </AppShell>
   );

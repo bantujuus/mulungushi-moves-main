@@ -1,11 +1,6 @@
 ﻿import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
-  Outlet,
-  Link,
-  createRootRouteWithContext,
-  useRouter,
-  HeadContent,
-  Scripts,
+  Outlet, Link, createRootRouteWithContext, useRouter, HeadContent, Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
@@ -14,16 +9,14 @@ import { AuthProvider } from "../lib/auth";
 
 function NotFoundComponent() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">The page you are looking for does not exist.</p>
-        <div className="mt-6">
-          <Link to="/" className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
-            Go home
-          </Link>
-        </div>
+    <div style={{ display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center", background: "#f5f6f8", padding: 24 }}>
+      <div style={{ textAlign: "center", maxWidth: 400 }}>
+        <div style={{ fontSize: 72, fontWeight: 800, color: "#0b1830" }}>404</div>
+        <div style={{ fontSize: 20, fontWeight: 600, color: "#0b1830", marginBottom: 8 }}>Page not found</div>
+        <p style={{ color: "rgba(11,24,48,0.50)", marginBottom: 24 }}>The page you are looking for does not exist.</p>
+        <Link to="/" style={{ display: "inline-flex", alignItems: "center", padding: "10px 20px", background: "#0b1830", color: "#fff", borderRadius: 8, textDecoration: "none", fontSize: 14, fontWeight: 600 }}>
+          Go home
+        </Link>
       </div>
     </div>
   );
@@ -37,15 +30,16 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   }, [error]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">This page did not load</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Something went wrong. Try refreshing or head back home.</p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <button onClick={() => { router.invalidate(); reset(); }} className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
+    <div style={{ display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center", background: "#f5f6f8", padding: 24 }}>
+      <div style={{ textAlign: "center", maxWidth: 400 }}>
+        <div style={{ fontSize: 20, fontWeight: 600, color: "#0b1830", marginBottom: 8 }}>This page did not load</div>
+        <p style={{ color: "rgba(11,24,48,0.50)", marginBottom: 24 }}>Something went wrong. Try refreshing or head back home.</p>
+        <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+          <button onClick={() => { router.invalidate(); reset(); }}
+            style={{ padding: "10px 20px", background: "#0b1830", color: "#fff", border: "none", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
             Try again
           </button>
-          <a href="/" className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent">
+          <a href="/" style={{ padding: "10px 20px", background: "transparent", color: "#0b1830", border: "1px solid rgba(11,24,48,0.15)", borderRadius: 8, fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
             Go home
           </a>
         </div>
@@ -59,7 +53,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "MU Fleet & Gate Management" },
+      { title: "Mulungushi Moves — Fleet & Gate Management" },
       { name: "description", content: "Digital Fleet and Gate Management System for Mulungushi University." },
     ],
     links: [

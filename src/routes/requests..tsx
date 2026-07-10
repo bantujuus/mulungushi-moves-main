@@ -1,7 +1,6 @@
 ﻿import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { AppShell, StatusBadge } from "@/components/app-shell";
-import { Card } from "@/components/ui/card";
+import { AppShell, StatusBadge, DirectionBadge, SectionHeader } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { getRequestById } from "@/lib/api/vehicles";
 import { format } from "date-fns";
@@ -10,6 +9,15 @@ import { ArrowLeft, Car, User, MapPin, Calendar, Users, ShieldCheck } from "luci
 export const Route = createFileRoute("/requests/")({
   component: RequestDetailPage,
 });
+
+function Field({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(11,24,48,0.45)", textTransform: "uppercase", letterSpacing: "0.10em", marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 14, fontWeight: 500, color: "#0b1830" }}>{value}</div>
+    </div>
+  );
+}
 
 function RequestDetailPage() {
   const { requestId } = Route.useParams();
@@ -22,13 +30,13 @@ function RequestDetailPage() {
 
   if (isLoading) return (
     <AppShell title="Request Detail">
-      <Card className="p-8 text-center text-sm text-muted-foreground">Loading...</Card>
+      <div style={{ textAlign: "center", padding: 48, color: "rgba(11,24,48,0.45)", fontSize: 14 }}>Loading...</div>
     </AppShell>
   );
 
   if (!data) return (
     <AppShell title="Request Detail">
-      <Card className="p-8 text-center text-sm text-muted-foreground">Request not found.</Card>
+      <div style={{ textAlign: "center", padding: 48, color: "rgba(11,24,48,0.45)", fontSize: 14 }}>Request not found.</div>
     </AppShell>
   );
 
@@ -36,132 +44,105 @@ function RequestDetailPage() {
 
   return (
     <AppShell title="Request Detail" subtitle={`Trip to ${request.destination}`}>
-      <div className="max-w-3xl space-y-6">
-        <Button variant="outline" size="sm" onClick={() => navigate({ to: -1 as any })}>
-          <ArrowLeft className="w-4 h-4 mr-2" /> Back
-        </Button>
+      <div style={{ maxWidth: 720 }}>
+        <button onClick={() => navigate({ to: -1 as any })} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "1px solid rgba(11,24,48,0.15)", borderRadius: 8, padding: "6px 12px", fontSize: 13, fontWeight: 600, color: "#0b1830", cursor: "pointer", marginBottom: 24 }}>
+          <ArrowLeft size={14} /> Back
+        </button>
 
-        <Card className="p-5 flex items-center justify-between flex-wrap gap-3">
+        {/* Status banner */}
+        <div style={{ background: "#fff", border: "1px solid rgba(11,24,48,0.08)", borderRadius: 12, padding: 20, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
           <div>
-            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Status</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(11,24,48,0.45)", textTransform: "uppercase", letterSpacing: "0.10em", marginBottom: 6 }}>Status</div>
             <StatusBadge status={request.status} />
           </div>
-          <div className="text-right">
-            <div className="text-xs text-muted-foreground">Submitted</div>
-            <div className="text-sm font-medium">{format(new Date(request.createdAt), "PPp")}</div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(11,24,48,0.45)", textTransform: "uppercase", letterSpacing: "0.10em", marginBottom: 4 }}>Submitted</div>
+            <div style={{ fontSize: 14, fontWeight: 500, color: "#0b1830" }}>{format(new Date(request.createdAt), "PPp")}</div>
           </div>
-        </Card>
+        </div>
 
-        <Card className="p-5">
-          <h2 className="font-semibold mb-4">Trip Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex gap-3">
-              <User className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
-              <div>
-                <div className="text-xs text-muted-foreground">Requester</div>
-                <div className="text-sm font-medium">{request.requesterName}</div>
-                <div className="text-xs text-muted-foreground">{request.department}</div>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
-              <div>
-                <div className="text-xs text-muted-foreground">Destination</div>
-                <div className="text-sm font-medium">{request.destination}</div>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <Calendar className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
-              <div>
-                <div className="text-xs text-muted-foreground">Departure</div>
-                <div className="text-sm font-medium">{format(new Date(request.departAt), "PPp")}</div>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <Calendar className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
-              <div>
-                <div className="text-xs text-muted-foreground">Return</div>
-                <div className="text-sm font-medium">{format(new Date(request.returnAt), "PPp")}</div>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <Users className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
-              <div>
-                <div className="text-xs text-muted-foreground">Passengers</div>
-                <div className="text-sm font-medium">{request.passengers}</div>
-              </div>
-            </div>
+        {/* Trip info */}
+        <div style={{ background: "#fff", border: "1px solid rgba(11,24,48,0.08)", borderRadius: 12, padding: 20, marginBottom: 16 }}>
+          <SectionHeader>Trip Information</SectionHeader>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+            <Field label="Requester" value={request.requesterName} />
+            <Field label="Department" value={request.department} />
+            <Field label="Destination" value={request.destination} />
+            <Field label="Passengers" value={String(request.passengers)} />
+            <Field label="Departure" value={format(new Date(request.departAt), "PPp")} />
+            <Field label="Return" value={format(new Date(request.returnAt), "PPp")} />
           </div>
-          <div className="mt-4 pt-4 border-t">
-            <div className="text-xs text-muted-foreground mb-1">Purpose</div>
-            <div className="text-sm">{request.purpose}</div>
+          <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid rgba(11,24,48,0.08)" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(11,24,48,0.45)", textTransform: "uppercase", letterSpacing: "0.10em", marginBottom: 6 }}>Purpose</div>
+            <div style={{ fontSize: 14, color: "#0b1830", lineHeight: 1.6 }}>{request.purpose}</div>
           </div>
-        </Card>
+        </div>
 
+        {/* Assignment */}
         {(vehicle || driver) && (
-          <Card className="p-5">
-            <h2 className="font-semibold mb-4">Assignment</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div style={{ background: "#fff", border: "1px solid rgba(11,24,48,0.08)", borderRadius: 12, padding: 20, marginBottom: 16 }}>
+            <SectionHeader>Assignment</SectionHeader>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
               {vehicle && (
-                <div className="flex gap-3">
-                  <Car className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(11,24,48,0.05)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <Car size={16} color="rgba(11,24,48,0.40)" />
+                  </div>
                   <div>
-                    <div className="text-xs text-muted-foreground">Vehicle</div>
-                    <div className="text-sm font-medium">{vehicle.make} {vehicle.model}</div>
-                    <div className="text-xs text-muted-foreground">{vehicle.plate} · {vehicle.capacity} seats</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(11,24,48,0.45)", textTransform: "uppercase", letterSpacing: "0.10em", marginBottom: 4 }}>Vehicle</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: "#0b1830" }}>{vehicle.make} {vehicle.model}</div>
+                    <div style={{ fontSize: 13, color: "rgba(11,24,48,0.55)" }}>{vehicle.plate} · {vehicle.capacity} seats</div>
                   </div>
                 </div>
               )}
               {driver && (
-                <div className="flex gap-3">
-                  <User className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(11,24,48,0.05)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <User size={16} color="rgba(11,24,48,0.40)" />
+                  </div>
                   <div>
-                    <div className="text-xs text-muted-foreground">Driver</div>
-                    <div className="text-sm font-medium">{driver.name}</div>
-                    <div className="text-xs text-muted-foreground">{driver.license} · {driver.phone}</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(11,24,48,0.45)", textTransform: "uppercase", letterSpacing: "0.10em", marginBottom: 4 }}>Driver</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: "#0b1830" }}>{driver.name}</div>
+                    <div style={{ fontSize: 13, color: "rgba(11,24,48,0.55)" }}>{driver.license} · {driver.phone}</div>
                   </div>
                 </div>
               )}
             </div>
             {request.approverNote && (
-              <div className="mt-4 pt-4 border-t">
-                <div className="text-xs text-muted-foreground mb-1">Approver Note</div>
-                <div className="text-sm italic">{request.approverNote}</div>
+              <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid rgba(11,24,48,0.08)" }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(11,24,48,0.45)", textTransform: "uppercase", letterSpacing: "0.10em", marginBottom: 4 }}>Approver Note</div>
+                <div style={{ fontSize: 14, color: "#0b1830", fontStyle: "italic" }}>{request.approverNote}</div>
               </div>
             )}
             {request.approvedAt && (
-              <div className="mt-2">
-                <div className="text-xs text-muted-foreground">Approved: {format(new Date(request.approvedAt), "PPp")}</div>
-              </div>
+              <div style={{ fontSize: 13, color: "rgba(11,24,48,0.45)", marginTop: 8 }}>Approved: {format(new Date(request.approvedAt), "PPp")}</div>
             )}
-          </Card>
+          </div>
         )}
 
-        <Card className="p-5">
-          <h2 className="font-semibold mb-4">Gate Activity</h2>
+        {/* Gate logs */}
+        <div style={{ background: "#fff", border: "1px solid rgba(11,24,48,0.08)", borderRadius: 12, padding: 20 }}>
+          <SectionHeader>Gate Activity</SectionHeader>
           {logs.length === 0 ? (
-            <div className="text-sm text-muted-foreground">No gate activity recorded yet.</div>
+            <div style={{ fontSize: 14, color: "rgba(11,24,48,0.35)", padding: "8px 0" }}>No gate activity recorded yet.</div>
           ) : (
-            <div className="space-y-3">
-              {logs.map((log) => (
-                <div key={log.id} className="flex items-center gap-3 flex-wrap py-2 border-b last:border-0">
-                  <ShieldCheck className="w-4 h-4 text-muted-foreground shrink-0" />
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${log.direction === "exit" ? "bg-orange-100 text-orange-700" : "bg-green-100 text-green-700"}`}>
-                    {log.direction === "exit" ? "EXIT" : "ENTRY"}
-                  </span>
-                  <div className="flex-1">
-                    <div className="text-sm font-medium">{log.vehiclePlate} · {log.driverName}</div>
-                    <div className="text-xs text-muted-foreground">
+            <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+              {logs.map((log, i) => (
+                <div key={log.id} style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", padding: "14px 0", borderBottom: i < logs.length - 1 ? "1px solid rgba(11,24,48,0.06)" : "none" }}>
+                  <DirectionBadge direction={log.direction as "exit" | "entry"} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: "#0b1830" }}>{log.vehiclePlate} · {log.driverName}</div>
+                    <div style={{ fontSize: 13, color: "rgba(11,24,48,0.45)" }}>
                       Officer: {log.officer} · {format(new Date(log.timestamp), "PPp")}
                       {log.odometer && ` · Odometer: ${log.odometer} km`}
                     </div>
-                    {log.note && <div className="text-xs text-muted-foreground italic">{log.note}</div>}
+                    {log.note && <div style={{ fontSize: 13, color: "rgba(11,24,48,0.45)", fontStyle: "italic" }}>{log.note}</div>}
                   </div>
                 </div>
               ))}
             </div>
           )}
-        </Card>
+        </div>
       </div>
     </AppShell>
   );
