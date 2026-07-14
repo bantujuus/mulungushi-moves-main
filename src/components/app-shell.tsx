@@ -1,5 +1,5 @@
-﻿import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, FileText, ShieldCheck, Car, LogOut, ClipboardCheck, ScanLine, Users, ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
+import { LayoutDashboard, FileText, ShieldCheck, Car, LogOut, ClipboardCheck, ScanLine, Users, ArrowUpRight, ArrowDownLeft, ClipboardList } from "lucide-react";
 import { useAuth, type Role } from "@/lib/auth";
 import { logoutUser } from "@/lib/api/auth";
 import { getRequests } from "@/lib/api/vehicles";
@@ -15,6 +15,7 @@ const NAV: Record<Role, { to: string; label: string; icon: any }[]> = {
   transport: [
     { to: "/transport", label: "Approvals", icon: ClipboardCheck },
     { to: "/transport/fleet", label: "Fleet Status", icon: Car },
+    { to: "/admin/summary", label: "Trip Summary", icon: ClipboardList },
     { to: "/admin/reports", label: "Reports", icon: FileText },
   ],
   security: [
@@ -26,6 +27,7 @@ const NAV: Record<Role, { to: string; label: string; icon: any }[]> = {
     { to: "/admin/users", label: "User Management", icon: Users },
     { to: "/admin/vehicles", label: "Vehicles", icon: Car },
     { to: "/admin/drivers", label: "Drivers", icon: ShieldCheck },
+    { to: "/admin/summary", label: "Trip Summary", icon: ClipboardList },
     { to: "/admin/reports", label: "Reports", icon: FileText },
   ],
 };
@@ -93,7 +95,7 @@ export function AppShell({ children, title, subtitle }: { children: ReactNode; t
         {/* Nav */}
         <nav style={{ flex: 1, padding: "4px 12px", display: "flex", flexDirection: "column", gap: 2 }}>
           {items.map((item) => {
-            const active = pathname === item.to || pathname.startsWith(item.to + "/");
+            const active = pathname === item.to;
             const Icon = item.icon;
             const showBadge = item.to === "/transport" && pendingCount > 0;
             return (
@@ -208,3 +210,12 @@ export function SectionHeader({ children }: { children: ReactNode }) {
     </div>
   );
 }
+export function FieldError({ error }: { error?: string }) {
+  if (!error) return null;
+  return (
+    <div style={{ fontSize: 12, color: "#dc2626", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+      <span>⚠</span> {error}
+    </div>
+  );
+}
+

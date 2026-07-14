@@ -19,6 +19,7 @@ import { Route as StaffNewRouteImport } from './routes/staff.new'
 import { Route as SecurityLogsRouteImport } from './routes/security.logs'
 import { Route as AdminVehiclesRouteImport } from './routes/admin.vehicles'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
+import { Route as AdminSummaryRouteImport } from './routes/admin.summary'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminDriversRouteImport } from './routes/admin.drivers'
 import { Route as RequestsRouteImport } from './routes/requests.'
@@ -73,6 +74,11 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminSummaryRoute = AdminSummaryRouteImport.update({
+  id: '/summary',
+  path: '/summary',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminReportsRoute = AdminReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
@@ -98,6 +104,7 @@ export interface FileRoutesByFullPath {
   '/requests/': typeof RequestsRoute
   '/admin/drivers': typeof AdminDriversRoute
   '/admin/reports': typeof AdminReportsRoute
+  '/admin/summary': typeof AdminSummaryRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/vehicles': typeof AdminVehiclesRoute
   '/security/logs': typeof SecurityLogsRoute
@@ -113,6 +120,7 @@ export interface FileRoutesByTo {
   '/requests': typeof RequestsRoute
   '/admin/drivers': typeof AdminDriversRoute
   '/admin/reports': typeof AdminReportsRoute
+  '/admin/summary': typeof AdminSummaryRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/vehicles': typeof AdminVehiclesRoute
   '/security/logs': typeof SecurityLogsRoute
@@ -129,6 +137,7 @@ export interface FileRoutesById {
   '/requests/': typeof RequestsRoute
   '/admin/drivers': typeof AdminDriversRoute
   '/admin/reports': typeof AdminReportsRoute
+  '/admin/summary': typeof AdminSummaryRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/vehicles': typeof AdminVehiclesRoute
   '/security/logs': typeof SecurityLogsRoute
@@ -146,6 +155,7 @@ export interface FileRouteTypes {
     | '/requests/'
     | '/admin/drivers'
     | '/admin/reports'
+    | '/admin/summary'
     | '/admin/users'
     | '/admin/vehicles'
     | '/security/logs'
@@ -161,6 +171,7 @@ export interface FileRouteTypes {
     | '/requests'
     | '/admin/drivers'
     | '/admin/reports'
+    | '/admin/summary'
     | '/admin/users'
     | '/admin/vehicles'
     | '/security/logs'
@@ -176,6 +187,7 @@ export interface FileRouteTypes {
     | '/requests/'
     | '/admin/drivers'
     | '/admin/reports'
+    | '/admin/summary'
     | '/admin/users'
     | '/admin/vehicles'
     | '/security/logs'
@@ -264,6 +276,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/summary': {
+      id: '/admin/summary'
+      path: '/summary'
+      fullPath: '/admin/summary'
+      preLoaderRoute: typeof AdminSummaryRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/reports': {
       id: '/admin/reports'
       path: '/reports'
@@ -291,6 +310,7 @@ declare module '@tanstack/react-router' {
 interface AdminRouteChildren {
   AdminDriversRoute: typeof AdminDriversRoute
   AdminReportsRoute: typeof AdminReportsRoute
+  AdminSummaryRoute: typeof AdminSummaryRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminVehiclesRoute: typeof AdminVehiclesRoute
 }
@@ -298,6 +318,7 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminDriversRoute: AdminDriversRoute,
   AdminReportsRoute: AdminReportsRoute,
+  AdminSummaryRoute: AdminSummaryRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminVehiclesRoute: AdminVehiclesRoute,
 }

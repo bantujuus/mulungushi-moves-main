@@ -1,6 +1,6 @@
 ﻿import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { AppShell, StatusBadge, SectionHeader } from "@/components/app-shell";
+import { AppShell, StatusBadge, SectionHeader, FieldError } from "@/components/app-shell";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { getMyRequests } from "@/lib/api/vehicles";
 import { createRequest } from "@/lib/api/mutations";
 import { useAuth } from "@/lib/auth";
+import { validate, hasErrors } from "@/lib/validation";
 import { format } from "date-fns";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
@@ -19,14 +20,15 @@ export const Route = createFileRoute("/staff")({
   component: StaffPage,
 });
 
+const EMPTY_FORM = { purpose: "", destination: "", passengers: 1, departAt: "", returnAt: "" };
+
 function StaffPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
-    purpose: "", destination: "", passengers: 1, departAt: "", returnAt: "",
-  });
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<string>("all");
 
@@ -38,40 +40,61 @@ function StaffPage() {
   });
 
   const filteredRequests = useMemo(() => {
-    return requests.filter((r: any) => {
+    return (requests as any[]).filter((r) => {
       if (status !== "all" && r.status !== status) return false;
-      if (search) {
-        const q = search.toLowerCase();
-        if (!`${r.purpose} ${r.destination}`.toLowerCase().includes(q)) return false;
-      }
+      if (search && !`${r.purpose} ${r.destination}`.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
   }, [requests, status, search]);
 
   const { mutate, isPending } = useMutation({
     mutationFn: () => createRequest({ data: {
-      userId: user!.id,
-      requesterName: user!.name,
-      department: "",
-      purpose: form.purpose,
-      destination: form.destination,
-      passengers: form.passengers,
-      departAt: form.departAt,
-      returnAt: form.returnAt,
+      userId: user!.id, requesterName: user!.name, department: "",
+      purpose: form.purpose, destination: form.destination,
+      passengers: form.passengers, departAt: form.departAt, returnAt: form.returnAt,
     }}),
     onSuccess: () => {
       toast.success("Request submitted successfully");
       queryClient.invalidateQueries({ queryKey: ["myRequests", user?.id] });
       setOpen(false);
-      setForm({ purpose: "", destination: "", passengers: 1, departAt: "", returnAt: "" });
+      setForm(EMPTY_FORM);
+      setErrors({});
     },
     onError: (err) => { console.error(err); toast.error("Failed to submit request"); },
+  });
+
+  const handleSubmit = () => {
+    const errs = validate(form, {
+      purpose:     { required: true, minLength: 5, label: "Purpose" },
+      destination: { required: true, minLength: 3, label: "Destination" },
+      passengers:  { required: true, min: 1, max: 50, label: "Passengers" },
+      departAt:    { required: true, label: "Departure date & time" },
+      returnAt:    { required: true, label: "Return date & time" },
+    });
+
+    // Extra: return must be after departure
+    if (form.departAt && form.returnAt && new Date(form.returnAt) <= new Date(form.departAt)) {
+      errs.returnAt = "Return must be after departure";
+    }
+
+    setErrors(errs);
+    if (hasErrors(errs)) return;
+    mutate();
+  };
+
+  const field = (key: string) => ({
+    value: (form as any)[key],
+    onChange: (e: any) => {
+      setForm({ ...form, [key]: e.target.value });
+      if (errors[key]) setErrors({ ...errors, [key]: "" });
+    },
   });
 
   return (
     <AppShell title="My Requests" subtitle="Submit and track your vehicle requests">
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 24 }}>
-        <button onClick={() => setOpen(true)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", background: "#0b1830", color: "#fff", border: "none", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+        <button onClick={() => { setOpen(true); setForm(EMPTY_FORM); setErrors({}); }}
+          style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", background: "#0b1830", color: "#fff", border: "none", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
           <Plus size={16} /> New Request
         </button>
       </div>
@@ -111,8 +134,7 @@ function StaffPage() {
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {filteredRequests.slice().reverse().map((r: any) => (
-          <div key={r.id}
-            onClick={() => navigate({ to: "/requests/$requestId", params: { requestId: r.id } })}
+          <div key={r.id} onClick={() => navigate({ to: "/requests/$requestId", params: { requestId: r.id } })}
             style={{ background: "#fff", border: "1px solid rgba(11,24,48,0.08)", borderRadius: 12, padding: 20, cursor: "pointer", transition: "border-color 150ms ease", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}
             onMouseEnter={(e) => (e.currentTarget.style.borderColor = "rgba(212,168,67,0.40)")}
             onMouseLeave={(e) => (e.currentTarget.style.borderColor = "rgba(11,24,48,0.08)")}>
@@ -122,9 +144,7 @@ function StaffPage() {
                 <StatusBadge status={r.status} />
               </div>
               <div style={{ fontSize: 14, color: "rgba(11,24,48,0.55)" }}>{r.destination} · {r.passengerCount} passengers</div>
-              <div style={{ fontSize: 14, color: "rgba(11,24,48,0.45)", marginTop: 2 }}>
-                Depart: {r.departureAt ? format(new Date(r.departureAt), "PPp") : "—"}
-              </div>
+              <div style={{ fontSize: 14, color: "rgba(11,24,48,0.45)", marginTop: 2 }}>Depart: {r.departureAt ? format(new Date(r.departureAt), "PPp") : "—"}</div>
             </div>
             <ChevronRight size={16} color="rgba(11,24,48,0.30)" />
           </div>
@@ -134,22 +154,45 @@ function StaffPage() {
         )}
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setErrors({}); } }}>
         <DialogContent>
           <DialogHeader><DialogTitle>New Vehicle Request</DialogTitle></DialogHeader>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div><Label>Purpose</Label><Textarea value={form.purpose} onChange={(e) => setForm({ ...form, purpose: e.target.value })} placeholder="Reason for the trip" /></div>
-            <div><Label>Destination</Label><Input value={form.destination} onChange={(e) => setForm({ ...form, destination: e.target.value })} /></div>
-            <div><Label>Passengers</Label><Input type="number" min={1} value={form.passengers} onChange={(e) => setForm({ ...form, passengers: Number(e.target.value) })} /></div>
-            <div><Label>Departure Date & Time</Label><Input type="datetime-local" value={form.departAt} onChange={(e) => setForm({ ...form, departAt: e.target.value })} /></div>
-            <div><Label>Return Date & Time</Label><Input type="datetime-local" value={form.returnAt} onChange={(e) => setForm({ ...form, returnAt: e.target.value })} /></div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div>
+              <Label>Purpose <span style={{ color: "#dc2626" }}>*</span></Label>
+              <Textarea {...field("purpose")} placeholder="e.g. Field trip to Kafue Gorge for engineering students"
+                style={{ borderColor: errors.purpose ? "#dc2626" : undefined }} />
+              <FieldError error={errors.purpose} />
+            </div>
+            <div>
+              <Label>Destination <span style={{ color: "#dc2626" }}>*</span></Label>
+              <Input {...field("destination")} placeholder="e.g. Kafue Gorge"
+                style={{ borderColor: errors.destination ? "#dc2626" : undefined }} />
+              <FieldError error={errors.destination} />
+            </div>
+            <div>
+              <Label>Number of Passengers <span style={{ color: "#dc2626" }}>*</span></Label>
+              <Input type="number" min={1} max={50} value={form.passengers}
+                onChange={(e) => { setForm({ ...form, passengers: Number(e.target.value) }); if (errors.passengers) setErrors({ ...errors, passengers: "" }); }}
+                style={{ borderColor: errors.passengers ? "#dc2626" : undefined }} />
+              <FieldError error={errors.passengers} />
+            </div>
+            <div>
+              <Label>Departure Date & Time <span style={{ color: "#dc2626" }}>*</span></Label>
+              <Input type="datetime-local" {...field("departAt")}
+                style={{ borderColor: errors.departAt ? "#dc2626" : undefined }} />
+              <FieldError error={errors.departAt} />
+            </div>
+            <div>
+              <Label>Return Date & Time <span style={{ color: "#dc2626" }}>*</span></Label>
+              <Input type="datetime-local" {...field("returnAt")}
+                style={{ borderColor: errors.returnAt ? "#dc2626" : undefined }} />
+              <FieldError error={errors.returnAt} />
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <button onClick={() => {
-              if (!form.purpose || !form.destination || !form.departAt || !form.returnAt) { toast.error("Please fill in all fields"); return; }
-              mutate();
-            }} disabled={isPending}
+            <Button variant="outline" onClick={() => { setOpen(false); setErrors({}); }}>Cancel</Button>
+            <button onClick={handleSubmit} disabled={isPending}
               style={{ padding: "10px 16px", background: "#0b1830", color: "#fff", border: "none", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
               {isPending ? "Submitting..." : "Submit Request"}
             </button>

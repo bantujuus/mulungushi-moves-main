@@ -1,9 +1,9 @@
-﻿import { createFileRoute, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { AppShell, StatusBadge, DirectionBadge, SectionHeader } from "@/components/app-shell";
 import { getRequests, getVehicles, getGateLogs } from "@/lib/api/vehicles";
 import { getAnalytics } from "@/lib/api/analytics";
-import { Car, Users, ClipboardList, ShieldCheck } from "lucide-react";
+import { Car, Users, ClipboardList, ShieldCheck, TrendingUp } from "lucide-react";
 import { ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell } from "recharts";
 import { format } from "date-fns";
 
@@ -118,7 +118,7 @@ function AdminPage() {
                 <span style={{ fontSize: 15, fontWeight: 600, color: "#0b1830" }}>{r.purpose}</span>
                 <StatusBadge status={r.status} />
               </div>
-              <div style={{ fontSize: 14, color: "rgba(11,24,48,0.55)" }}>{r.destination} · {r.passengerCount} passengers</div>
+              <div style={{ fontSize: 14, color: "rgba(11,24,48,0.55)" }}>{r.destination} � {r.passengerCount} passengers</div>
             </div>
           ))}
         </div>

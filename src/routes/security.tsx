@@ -1,4 +1,4 @@
-﻿import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute, Outlet, useRouterState } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppShell, DirectionBadge, SectionHeader } from "@/components/app-shell";
 import { Input } from "@/components/ui/input";
@@ -15,8 +15,13 @@ import { toast } from "sonner";
 import { LogOut, LogIn, Search, Wifi } from "lucide-react";
 
 export const Route = createFileRoute("/security")({
-  component: SecurityPage,
+  component: SecurityLayout,
 });
+
+function SecurityLayout() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  return pathname === "/security" ? <SecurityPage /> : <Outlet />;
+}
 
 function SecurityPage() {
   const { user } = useAuth();
@@ -45,21 +50,19 @@ function SecurityPage() {
     if (logDirection !== "all" && l.direction !== logDirection) return false;
     if (logFrom && new Date(l.loggedAt) < new Date(logFrom)) return false;
     if (logTo && new Date(l.loggedAt) > new Date(logTo + "T23:59:59")) return false;
-    if (logSearch && !`${l.vehicleId} ${l.officerId}`.toLowerCase().includes(logSearch.toLowerCase())) return false;
+    if (logSearch && !`${l.vehicleId}`.toLowerCase().includes(logSearch.toLowerCase())) return false;
     return true;
   }), [logs, logDirection, logFrom, logTo, logSearch]);
 
   const readyToExit = useMemo(() => (requests as any[]).filter((r) => r.status === "approved"), [requests]);
   const awaitingReturn = useMemo(() => (requests as any[]).filter((r) => r.status === "approved"), [requests]);
   const relevantRequests = form.direction === "exit" ? readyToExit : awaitingReturn;
-  const availableVehicles = (vehicles as any[]).filter((v) => v.status === "available");
+  const availableVehicles = (vehicles as any[]);
 
   const { mutate, isPending } = useMutation({
     mutationFn: () => logGate({
       data: {
-        vehicleId: form.vehicleId,
-        officerId: user!.id,
-        direction: form.direction,
+        vehicleId: form.vehicleId, officerId: user!.id, direction: form.direction,
         requestId: form.requestId || undefined,
         odometer: form.odometer ? Number(form.odometer) : undefined,
         note: form.note || undefined,
@@ -86,7 +89,7 @@ function SecurityPage() {
   };
 
   return (
-    <AppShell title="Security Gate" subtitle="Record vehicle exits and entries">
+    <AppShell title="Gate Control" subtitle="Record vehicle exits and entries">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "rgba(11,24,48,0.45)" }}>
           <Wifi size={13} color="#047857" /> Live · updated {dataUpdatedAt ? format(dataUpdatedAt, "p") : "—"}
@@ -101,12 +104,36 @@ function SecurityPage() {
         </div>
       </div>
 
-      {/* Filter bar */}
+      {/* Awaiting return panel */}
+      {awaitingReturn.length > 0 && (
+        <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 12, padding: 20, marginBottom: 24 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <LogIn size={15} color="#d97706" />
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#d97706", textTransform: "uppercase", letterSpacing: "0.08em" }}>Vehicles Currently Out — Awaiting Return</span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {awaitingReturn.map((r: any) => (
+              <div key={r.id} style={{ background: "#fff", border: "1px solid #fde68a", borderRadius: 8, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                <div style={{ fontSize: 13, color: "#0b1830" }}>
+                  <strong>{r.purpose}</strong>
+                  <span style={{ color: "rgba(11,24,48,0.55)" }}> · {r.destination} · departs {r.departureAt ? format(new Date(r.departureAt), "PPp") : "—"}</span>
+                </div>
+                <button onClick={() => { setForm({ vehicleId: r.vehicleId || "", direction: "entry", requestId: r.id, odometer: "", note: "" }); setOpen(true); }}
+                  style={{ padding: "6px 12px", background: "transparent", border: "1px solid rgba(11,24,48,0.15)", borderRadius: 8, fontSize: 13, fontWeight: 600, color: "#0b1830", cursor: "pointer", flexShrink: 0 }}>
+                  Log Return
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Today filter bar */}
       <div style={{ background: "#fff", border: "1px solid rgba(11,24,48,0.08)", borderRadius: 12, padding: 16, marginBottom: 20 }}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-end" }}>
           <div style={{ flex: 1, minWidth: 200 }}>
             <div style={{ fontSize: 13, fontWeight: 500, color: "#0b1830", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}><Search size={13} /> Search</div>
-            <Input placeholder="Vehicle or officer..." value={logSearch} onChange={(e) => setLogSearch(e.target.value)} />
+            <Input placeholder="Vehicle..." value={logSearch} onChange={(e) => setLogSearch(e.target.value)} />
           </div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 500, color: "#0b1830", marginBottom: 6 }}>Direction</div>
@@ -128,26 +155,27 @@ function SecurityPage() {
             <Input type="date" value={logTo} onChange={(e) => setLogTo(e.target.value)} style={{ width: 140 }} />
           </div>
           {(logSearch || logDirection !== "all" || logFrom || logTo) && (
-            <button onClick={() => { setLogSearch(""); setLogDirection("all"); setLogFrom(""); setLogTo(""); }} style={{ background: "none", border: "none", color: "rgba(11,24,48,0.45)", fontSize: 13, cursor: "pointer" }}>Clear</button>
+            <button onClick={() => { setLogSearch(""); setLogDirection("all"); setLogFrom(""); setLogTo(""); }}
+              style={{ background: "none", border: "none", color: "rgba(11,24,48,0.45)", fontSize: 13, cursor: "pointer" }}>Clear</button>
           )}
         </div>
         <div style={{ fontSize: 12, color: "rgba(11,24,48,0.45)", marginTop: 10 }}>{filteredLogs.length} of {logs.length} logs</div>
       </div>
 
-      <SectionHeader>Gate Log History</SectionHeader>
+      <SectionHeader>Recent Activity</SectionHeader>
       {loadingLogs && <div style={{ textAlign: "center", padding: 48, color: "rgba(11,24,48,0.45)", fontSize: 14 }}>Loading...</div>}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {!loadingLogs && filteredLogs.length === 0 && (
-          <div style={{ background: "#fff", border: "1px solid rgba(11,24,48,0.08)", borderRadius: 12, padding: 48, textAlign: "center", color: "rgba(11,24,48,0.35)", fontSize: 14 }}>No logs match your filters.</div>
+          <div style={{ background: "#fff", border: "1px solid rgba(11,24,48,0.08)", borderRadius: 12, padding: 48, textAlign: "center", color: "rgba(11,24,48,0.35)", fontSize: 14 }}>No logs yet. Use the buttons above to record a movement.</div>
         )}
-        {filteredLogs.slice().reverse().map((log: any) => (
+        {filteredLogs.slice().reverse().slice(0, 20).map((log: any) => (
           <div key={log.id} style={{ background: "#fff", border: "1px solid rgba(11,24,48,0.08)", borderRadius: 12, padding: 20 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
               <DirectionBadge direction={log.direction as "exit" | "entry"} />
               <span style={{ fontSize: 15, fontWeight: 600, color: "#0b1830" }}>{getVehicleLabel(log.vehicleId)}</span>
               <span style={{ fontSize: 13, color: "rgba(11,24,48,0.45)", marginLeft: "auto" }}>{log.loggedAt ? format(new Date(log.loggedAt), "PPp") : ""}</span>
             </div>
-            {log.odometer && <div style={{ fontSize: 13, color: "rgba(11,24,48,0.45)", marginTop: 6 }}>Odometer: {log.odometer} km</div>}
+            {log.odometer && <div style={{ fontSize: 13, color: "rgba(11,24,48,0.55)", marginTop: 6 }}>Odometer: {log.odometer} km</div>}
             {log.notes && <div style={{ fontSize: 13, color: "rgba(11,24,48,0.45)", fontStyle: "italic", marginTop: 4 }}>Note: {log.notes}</div>}
           </div>
         ))}
@@ -173,7 +201,7 @@ function SecurityPage() {
               <Select value={form.vehicleId} onValueChange={(v) => setForm({ ...form, vehicleId: v })}>
                 <SelectTrigger><SelectValue placeholder="Select vehicle" /></SelectTrigger>
                 <SelectContent>
-                  {(vehicles as any[]).map((v: any) => <SelectItem key={v.id} value={v.id}>{v.registration} — {v.make} {v.model}</SelectItem>)}
+                  {availableVehicles.map((v: any) => <SelectItem key={v.id} value={v.id}>{v.registration} — {v.make} {v.model}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
