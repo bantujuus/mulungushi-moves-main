@@ -218,9 +218,22 @@ All primary keys use UUIDs (`gen_random_uuid()`). Indexes are defined on all fre
 bunx tsx src/db/seed-admin.ts
 ```
 
-Default admin credentials:
+Default credentials:
+**1) ADMIN**
 - **Email:** `admin@mulungushi.ac.zm`
 - **Password:** `Admin@1234`
+
+**2) TRANSPORT OFFICER**
+- **Email:** `transport@mulungushi.ac.zm`
+- **Password:** `Transport@m1234`
+
+**3) STAFF**
+-  **Email:** `staff@mulungushi.ac.zm`
+-   **Password:** `Staff@1234`
+
+**4) SECURITY OFFICER**
+-   **Email:** `security@mulungushi.ac.zm`
+-    **Password:** `Security@1234`
 
 > Change the password immediately after first login.
 
